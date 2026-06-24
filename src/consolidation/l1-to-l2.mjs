@@ -8,57 +8,16 @@ import { prepareL1, lowestSourceType } from '../storage/l1.mjs';
 import { prepareL2 } from '../storage/l2.mjs';
 import { estTokens, sha16, ulid } from '../utils/lexical.mjs';
 import { parseJsonLoose } from '../utils/json.mjs';
-import { parseEntities, entityOverlap, buildAliasMap, canonEntity } from '../graph/entities.mjs';
+import { parseEntities, entityOverlap, buildAliasMap, canonEntity, extractEntitiesFromText } from '../graph/entities.mjs';
 import { GraphStore } from '../graph/store.mjs';
 
-const MIN_CLUSTER_SIZE = 2;  // Architectural minimum: a fact needs ≥2 episodic mentions to crystallize.
-                             // Doc says 3, v0 uses 2 (sparse data). NEVER 1 — single-mention
-                             // agent_internal would flood L2 with unverified self-inferences.
-                             // Singletons stay in L1, await confirmation by live sessions
-                             // UNLESS salience bypass applies (see below).
-const REANCHOR_SAMPLE = 5;   //  sample high-salience source L0 for verification
-const REANCHOR_SALIENCE = 0.7; // : salience >= 0.7
-const MAX_CLUSTER_BATCH = 5; // JSON truncation hardening: split clusters >N into batches
-const MIN_SUMMARY_LEN = 50;  // Guard: skip L1 with empty/tiny summaries
-
-// Salience bypass (STEAL B): high-salience singletons promote without cluster.
-// Conditions (all must hold):
-//   1. max_salience ≥ 0.9 (errors, exceptions, critical events)
-//   2. source_type = user_authored|tool_result → always bypass (trusted)
-//      source_type = agent_internal → bypass ONLY if ≥2 L0 sources (pattern, not single judgment)
-//      (Design rule spirit: agent_internal can't self-promote on one observation)
-// Confidence caps still apply: agent_internal → 0.4, user_authored → 0.7.
+const MIN_CLUSTER_SIZE = 2;
+const REANCHOR_SAMPLE = 5;
+const REANCHOR_SALIENCE = 0.7;
+const MAX_CLUSTER_BATCH = 5;
+const MIN_SUMMARY_LEN = 50;
 const BYPASS_SALIENCE = 0.9;
 const BYPASS_MIN_L0_AGENT_INTERNAL = 2;
-
-// Extract entities from summary_text when L1.entities is empty.
-// Many imported L1 have rich text but empty entities field.
-const ENTITY_PATTERNS = [
-  /\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g,  // CamelCase: MyProject, GraphStore
-  /\b[A-Z][A-Z0-9_]{2,}\b/g,           // CAPS: SOL, API, DNS (filter later)
-  /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?\b/g, // IPs
-  /:\d{4,5}\b/g,                        // ports
-  /\b[\w.-]+\.(?:mjs|js|py|md|db|json|yaml|toml|service)\b/gi, // filenames
-];
-const STOP_CAPS = new Set([
-  'THE', 'AND', 'FOR', 'NOT', 'BUT', 'ARE', 'WAS', 'HAS', 'NEW', 'ALL', 'SET',
-  'API', 'URL', 'HTTP', 'HTTPS', 'JSON', 'HTML', 'CSS', 'SQL', 'GET', 'POST',
-  'PUT', 'DELETE', 'NULL', 'TRUE', 'FALSE', 'UTC', 'GMT', 'PID', 'DOM', 'XHR',
-  'HEARTBEAT', 'NONE', 'TODO', 'NOTE', 'YES',
-]);
-
-function extractEntitiesFromText(text) {
-  const found = new Set();
-  for (const re of ENTITY_PATTERNS) {
-    re.lastIndex = 0;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      const e = m[0].trim();
-      if (e.length >= 2 && e.length <= 40 && !STOP_CAPS.has(e)) found.add(e);
-    }
-  }
-  return found;
-}
 
 function clusterByEntity(l1Records, aliasMap) {
   const groups = new Map();

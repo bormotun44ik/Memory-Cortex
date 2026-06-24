@@ -130,3 +130,18 @@ if (activeModules.length > 0) {
 } else {
   console.log('cortex: croner OFF (set CRON_L0L1=true / CRONER_ENABLED=true)');
 }
+
+// Graceful shutdown
+function shutdown(signal) {
+  console.log(`cortex: ${signal} received, shutting down...`);
+  app.close().then(() => {
+    db.close();
+    console.log('cortex: database closed');
+    process.exit(0);
+  }).catch(() => {
+    db.close();
+    process.exit(1);
+  });
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -38,8 +38,7 @@ process.stdin.on('end', async () => {
       },
       body: JSON.stringify({
         agent: CORTEX_AGENT,
-        messages: [{ role: 'user', content: userMessage }],
-        budget_tokens: 500,
+        messages: [userMessage],
       }),
       signal: AbortSignal.timeout(4000),
     });

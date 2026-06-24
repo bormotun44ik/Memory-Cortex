@@ -4,34 +4,10 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
+import { extractEntitiesFromText } from '../graph/entities.mjs';
 
 const CHUNK_MAX = 6000;
 const CHUNK_OVERLAP = 200;
-
-// --- Entity extraction (self-contained, no dependency on graph/entities.mjs) ---
-
-const CASE_SENSITIVE_RE = /(?:\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b|\b[A-Z][A-Z0-9_]{2,}\b|\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b|\/[\w\-.\/]{3,}(?:\.\w+)?\b|\b\d+\.\d+(?:\.\d+)+\b)/g;
-const KNOWN_NAMES_RE = /\b(?:node\.?js|npm|python|pip|docker|systemd|nginx|redis|postgres|mysql|sqlite|fastify|express|react|vue|angular|typescript|webpack|vite|git|github|gitlab|aws|gcp|azure|kubernetes|terraform|ansible|grafana|prometheus|elasticsearch|kafka|rabbitmq|mongodb|graphql|rest|grpc|openai|anthropic|claude|hermes|ollama|langchain)\b/gi;
-const GENERIC_VOCAB_RE = /\b(?:server|network|backup|port|config|proxy|tunnel|firewall|deploy|disk|certificate|database|daemon|cron|migration|cluster|replica|snapshot|container|volume|route|gateway|endpoint|middleware|cache|queue|worker|scheduler|socket|pipeline|monitor|webhook|secret|credential|token|session)\b/gi;
-const STOP_CAPS = new Set(['API', 'HTTP', 'HTTPS', 'JSON', 'SQL', 'SSH', 'DNS', 'TCP', 'UDP', 'URL', 'SSL', 'TLS', 'HTML', 'CSS', 'RAM', 'CPU', 'GPU', 'SSD', 'UUID', 'CLI', 'SDK', 'MCP', 'LLM', 'VPN', 'VPS', 'ORM', 'EOF', 'ENV', 'GET', 'PUT', 'SET', 'RUN', 'POST', 'JWT', 'UTC', 'ISO', 'NOT', 'AND', 'THE', 'FOR', 'HAS', 'WAS', 'ARE', 'BUT', 'NULL', 'TRUE', 'FALSE', 'NONE']);
-
-export function extractEntities(text) {
-  const entities = new Set();
-  for (const m of text.matchAll(CASE_SENSITIVE_RE)) {
-    const raw = m[0];
-    if (raw.length < 2 || raw.length > 60) continue;
-    if (STOP_CAPS.has(raw.toUpperCase())) continue;
-    if (/^\d+$/.test(raw)) continue;
-    entities.add(raw.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim());
-  }
-  for (const m of text.matchAll(KNOWN_NAMES_RE)) {
-    entities.add(m[0].toLowerCase());
-  }
-  for (const m of text.matchAll(GENERIC_VOCAB_RE)) {
-    if (m[0].length >= 3) entities.add(m[0].toLowerCase());
-  }
-  return [...entities].filter((e) => e.length >= 2);
-}
 
 // --- Markdown chunking ---
 
@@ -88,7 +64,7 @@ function importJson(filepath, opts) {
     session: `import:json:${basename(filepath)}`,
     type: r.type ?? 'exchange',
     source_type: opts.sourceType,
-    entities: r.entities ?? extractEntities(r.content ?? r.text ?? ''),
+    entities: r.entities ?? extractEntitiesFromText(r.content ?? r.text ?? ''),
     ts: r.ts ?? r.timestamp ?? r.created_at ?? Date.now(),
   }));
 }
@@ -106,7 +82,7 @@ function importJsonl(filepath, opts) {
         session: `import:jsonl:${basename(filepath)}`,
         type: r.type ?? 'exchange',
         source_type: opts.sourceType,
-        entities: r.entities ?? extractEntities(r.content ?? r.text ?? ''),
+        entities: r.entities ?? extractEntitiesFromText(r.content ?? r.text ?? ''),
         ts: r.ts ?? r.timestamp ?? r.created_at ?? Date.now(),
       });
     } catch { /* skip malformed lines */ }
@@ -119,7 +95,7 @@ function importMarkdown(filepath, opts) {
   if (text.trim().length < 10) return [];
 
   const chunks = chunkMarkdown(text);
-  const entities = extractEntities(text);
+  const entities = extractEntitiesFromText(text);
   const dateMatch = filepath.match(/(\d{4}-\d{2}-\d{2})/);
   const ts = dateMatch ? new Date(dateMatch[1]).getTime() : Date.now();
 
@@ -153,7 +129,7 @@ function importChat(filepath, opts) {
       session,
       type: 'exchange',
       source_type: m.role === 'user' ? 'user_authored' : opts.sourceType,
-      entities: extractEntities(m.content),
+      entities: extractEntitiesFromText(m.content),
       ts: m.timestamp ?? m.created_at ?? (Date.now() - (messages.length - i) * 1000),
     }));
 }

@@ -68,8 +68,8 @@ async function cmdInit() {
   const dir = dirname(cfg.dbPath);
   mkdirSync(dir, { recursive: true });
 
-  const { migrate } = await import(join(ROOT, 'scripts', 'migrate.mjs'));
-  const db = migrate(cfg.dbPath);
+  const { getDb } = await import(join(ROOT, 'src', 'storage', 'db.mjs'));
+  const db = getDb(cfg.dbPath);
   const v = db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
   db.close();
 
@@ -144,8 +144,8 @@ async function cmdImport() {
     process.exit(1);
   }
 
-  const { migrate } = await import(join(ROOT, 'scripts', 'migrate.mjs'));
-  const db = migrate(cfg.dbPath);
+  const { getDb } = await import(join(ROOT, 'src', 'storage', 'db.mjs'));
+  const db = getDb(cfg.dbPath);
   const { prepareL0 } = await import(join(ROOT, 'src', 'storage', 'l0.mjs'));
   const l0 = prepareL0(db);
 
@@ -253,8 +253,8 @@ async function cmdSeed() {
     await cmdInit();
   }
 
-  const { migrate } = await import(join(ROOT, 'scripts', 'migrate.mjs'));
-  const db = migrate(cfg.dbPath);
+  const { getDb } = await import(join(ROOT, 'src', 'storage', 'db.mjs'));
+  const db = getDb(cfg.dbPath);
   const { prepareL0 } = await import(join(ROOT, 'src', 'storage', 'l0.mjs'));
   const l0 = prepareL0(db);
 

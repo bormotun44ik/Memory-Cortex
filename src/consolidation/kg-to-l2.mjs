@@ -12,7 +12,7 @@
 // Short workspace-md fragments (<20 chars) are truncated md, not real triples.
 
 import { prepareL2 } from '../storage/l2.mjs';
-import { parseEntities, entityOverlap, buildAliasMap, canonEntity } from '../graph/entities.mjs';
+import { parseEntities, entityOverlap, buildAliasMap, canonEntity, extractEntitiesFromText } from '../graph/entities.mjs';
 import { GraphStore } from '../graph/store.mjs';
 import { sha16 } from '../utils/lexical.mjs';
 
@@ -22,33 +22,6 @@ const CONFIDENCE_CAPS = {
   tool_result: 0.7,
   tool_result_external: 0.5,
 };
-
-const ENTITY_PATTERNS = [
-  /\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g,
-  /\b[A-Z][A-Z0-9_]{2,}\b/g,
-  /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?\b/g,
-  /:\d{4,5}\b/g,
-  /\b[\w.-]+\.(?:mjs|js|py|md|db|json|yaml|toml|service)\b/gi,
-];
-const STOP_CAPS = new Set([
-  'THE', 'AND', 'FOR', 'NOT', 'BUT', 'ARE', 'WAS', 'HAS', 'NEW', 'ALL', 'SET',
-  'API', 'URL', 'HTTP', 'HTTPS', 'JSON', 'HTML', 'CSS', 'SQL', 'GET', 'POST',
-  'PUT', 'DELETE', 'NULL', 'TRUE', 'FALSE', 'UTC', 'GMT', 'PID', 'DOM', 'XHR',
-  'HEARTBEAT', 'NONE', 'TODO', 'NOTE', 'YES',
-]);
-
-function extractEntities(text) {
-  const found = new Set();
-  for (const re of ENTITY_PATTERNS) {
-    re.lastIndex = 0;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      const e = m[0].trim();
-      if (e.length >= 2 && e.length <= 40 && !STOP_CAPS.has(e)) found.add(e);
-    }
-  }
-  return [...found];
-}
 
 function findDuplicate(db, factText, entities, aliasMap) {
   const FTS_RESERVED = new Set(['AND', 'OR', 'NOT', 'NEAR']);
@@ -108,7 +81,7 @@ export async function runKgToL2(db, { graph = null, limit = Infinity, log = cons
       continue;
     }
 
-    const entities = extractEntities(r.content);
+    const entities = extractEntitiesFromText(r.content);
     const factText = r.content.trim();
     if (factText.length < 5) { filtered++; continue; }
 
