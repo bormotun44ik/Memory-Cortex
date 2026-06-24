@@ -1,0 +1,12 @@
+services:
+  cortex:
+    build: .
+    ports:
+      - "7100:7100"
+    volumes:
+      - cortex-data:/app/data
+    env_file: .env
+    restart: unless-stopped
+
+volumes:
+  cortex-data:
