@@ -2,7 +2,7 @@ services:
   cortex:
     build: .
     ports:
-      - "7100:7100"
+      - "127.0.0.1:7100:7100"
     volumes:
       - cortex-data:/app/data
     env_file: .env
