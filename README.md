@@ -117,10 +117,10 @@ Copy `.env.example` to `.env` and configure:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CORTEX_DB_PATH` | `./data/cortex.db` | SQLite database path |
-| `BIND_HOST` | `127.0.0.1` | Bind address (loopback only by default) |
-| `PORT` | `7100` | HTTP port |
+| `CORTEX_BIND_HOST` | `127.0.0.1` | Bind address (loopback only by default) |
+| `CORTEX_PORT` | `7100` | HTTP port |
 | `CORTEX_SECRET` | — | Shared secret for API authentication |
-| `CORTEX_LLM_BACKEND` | `anthropic` | LLM provider: `anthropic`, `openrouter`, or `openai` |
+| `CORTEX_LLM_FORMAT` | `anthropic` | LLM API format: `anthropic` or `openai` |
 | `CORTEX_DEFAULT_AGENT` | `default` | Default agent identity |
 | `CRONER_ENABLED` | `false` | Enable all background consolidation jobs |
 

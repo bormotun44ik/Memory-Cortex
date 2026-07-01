@@ -98,8 +98,6 @@ Restart Claude Code. You now have push + pull + compress.
 
 Same MCP config — add the server to your agent's MCP settings. The 6 tools (`memory_search`, `memory_remember`, `memory_observe`, `memory_prefetch`, `memory_timeline`, `memory_status`) work with any MCP-compatible client.
 
-For Hermes specifically, copy `src/hermes-plugin/` to your Hermes plugins directory for deeper integration (automatic prefetch, compression hooks, session lifecycle).
-
 ### Option C: HTTP API directly
 
 Any language, any framework:

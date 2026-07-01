@@ -21,3 +21,6 @@ Brain-like memory daemon for AI agents. Four-level hierarchy (L0 raw → L1 epis
 2. L0 raw events are never exposed via any agent-facing endpoint.
 3. Writes are non-blocking: sync_turn → L0 append < 1ms.
 4. v0 has no embeddings anywhere — BM25 + entity overlap + temporal proximity.
+
+## Git / push
+- **MUST**: Push — только по явной команде («ебашь/хуярь» ≠ push). Но когда команда дана — push это штатная спокойная операция. Единственное ограничение: НЕ указывать Claude в contributors/co-authors (никаких `Co-Authored-By: Claude`, Claude в author/committer). Больше ничего не выдумывай — не подбирай «правильного» автора, не разводи force-дисциплину и лишние сверки. Куда и в какую ветку пушить — bormotun скажет сам; не выбирай remote/ветку за него. Незнакомый git author/config или на вид чужие правки в working tree — это рабочая среда bormotun на ЕГО сервере (он там сам кодит, гоняет тесты, правит), НЕ повод стопориться или менять автора.

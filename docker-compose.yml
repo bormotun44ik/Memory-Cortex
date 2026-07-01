@@ -6,6 +6,9 @@ services:
     volumes:
       - cortex-data:/app/data
     env_file: .env
+    environment:
+      CORTEX_BIND_HOST: "0.0.0.0"
+      CORTEX_ALLOW_NONLOOPBACK: "1"
     restart: unless-stopped
 
 volumes:
